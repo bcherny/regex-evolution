@@ -2,12 +2,12 @@ const {random} = require('lodash');
 
 const COMPLEXITY_PENALTY = -1;
 const CORRECTNESS_BONUS = 10;
-const INCORRECTNESS_PENALTY = -3;
+const INCORRECTNESS_PENALTY = -1;
 const INITIAL_FITNESS = -Infinity;
 const INVALID_PENALTY = -Infinity;
-const GENERATIONS_PER_LINEAGE = 100;
-const NUMBER_OF_LINEAGES = 100;
-const SUPPORTED_REGEX_OPERANDS = ['*', '?', '+', '\\s', '\\d', '\\b'];
+const GENERATIONS_PER_LINEAGE = 1000;
+const NUMBER_OF_LINEAGES = 1000;
+const SUPPORTED_REGEX_OPERANDS = ['*', '?', '+', '\\s', '\\d', '\\b', '\\w', '@', '\\.'];
 
 const MUTATION_TYPES = {
   0: 'ADDITION',
@@ -51,11 +51,23 @@ function getFitness(regex, cases) {
 
 // regex: string, cases: string[][] => number
 function getPercentCorrect(regex, cases) {
-  const posCorrect = cases[0].reduce((score, _) => score + (getFitness(regex, cases) > 0 ? 1 : 0), 0);
-  const negCorrect = cases[1].reduce((score, _) => score + (getFitness(regex, cases) > 0 ? 1 : 0), 0);
-  const correct = posCorrect + negCorrect;
-  const total = cases[0].length + cases[1].length;
-  return Math.round(100 * correct / total);
+
+  if (regex === '') {
+    return 0;
+  }
+
+  const rgx = toRegex(regex);
+
+  switch (rgx) {
+    case undefined:
+      return 0;
+    default:
+      const posCorrect = cases[0].reduce((score, _) => score + (rgx.test(_) ? 1 : 0), 0);
+      const negCorrect = cases[1].reduce((score, _) => score + (rgx.test(_) ? 0 : 1), 0);
+      const correct = posCorrect + negCorrect;
+      const total = cases[0].length + cases[1].length;
+      return Math.round(100 * correct / total);
+  }
 }
 
 // regex: string => number
@@ -84,7 +96,11 @@ function evolveRegex(regex) {
 
 //// test
 
-const cases = [['00', '01', '10'], ['11']];
+// const cases = [['00', '01', '10'], ['11']];
+const cases = [
+  ['bcherny@gmail.com', 'boris@performancejs.com', 'johnq@yahoo.com', 'john.brown@gmail.com'],
+  ['foo', '123', 'bcherny.com', '@foo', '@foo.co']
+]
 
 const best = Array.apply(null, { length: NUMBER_OF_LINEAGES })
   .map(() => {
