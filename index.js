@@ -1,33 +1,28 @@
 const {chunk, random} = require('lodash');
 
-const COMPLEXITY_PENALTY = -1;
+const COMPLEXITY_PENALTY = -3;
 const CORRECTNESS_BONUS = 10;
 const INCORRECTNESS_PENALTY = -1;
 const INITIAL_FITNESS = -Infinity;
 const INVALID_PENALTY = -Infinity;
-const GENERATIONS_PER_LINEAGE = 100;
-const MUTATIONS_PER_GENERATION = 100;
-const NUMBER_OF_LINEAGES = 100;
+const GENERATIONS_PER_LINEAGE = 500;
+const MUTATIONS_PER_GENERATION_MIN = 10;
+const MUTATIONS_PER_GENERATION_MAX = 50;
+const NUMBER_OF_LINEAGES = 500;
 const SUPPORTED_REGEX_OPERANDS = ['*', '?', '+', '\\s', '\\d', '\\b', '\\w', '@', '\\.'];
 
 const MUTATION_TYPES = {
-  0: 'ADDITION',
-  1: 'DELETION',
-  2: 'MUTATION',
-  3: 'DUPLICATION'
+  ADDITION: 'ADDITION',
+  DELETION: 'DELETION',
+  MUTATION: 'MUTATION',
+  DUPLICATION: 'DUPLICATION'
 }
-
-// [A] fn: () => A => A | undefined
-const maybe = fn => {
-  try {
-    return fn()
-  } catch (e) {
-    return undefined
-  }
-};
 
 const array = length => Array.apply(null, { length })
 const async = fn => new Promise(resolve => setTimeout(() => resolve(fn()), 0))
+
+// [A] fn: () => A => A | undefined
+const maybe = fn => { try { return fn() } catch (e) { return undefined } }
 
 // regex: string => RegExp|undefined
 function toRegex(regex) {
@@ -49,7 +44,9 @@ function getFitness(regex, cases) {
     default:
       const pos = cases[0].reduce((score, _) => score + (rgx.test(_) ? CORRECTNESS_BONUS : INCORRECTNESS_PENALTY), 0);
       const neg = cases[1].reduce((score, _) => score + (rgx.test(_) ? INCORRECTNESS_PENALTY : CORRECTNESS_BONUS), 0);
-      return pos + neg + (COMPLEXITY_PENALTY * getComplexity(regex));
+      return pos > 0
+        ? pos + neg + (COMPLEXITY_PENALTY * getComplexity(regex))
+        : 0
   }
 }
 
@@ -82,28 +79,28 @@ function getComplexity(regex) {
 // void => string
 function getMutationType() {
   let roll = random(0, 100)
-  if (roll < 30) return MUTATION_TYPES[0];
-  if (roll < 40) return MUTATION_TYPES[1];
-  if (roll < 90) return MUTATION_TYPES[2];
-  return MUTATION_TYPES[3];
+  if (roll < 10) return MUTATION_TYPES.ADDITION;
+  if (roll < 70) return MUTATION_TYPES.DELETION;
+  if (roll < 90) return MUTATION_TYPES.MUTATION;
+  return MUTATION_TYPES.DUPLICATION;
 }
 
 // seed: string => string
 function evolveRegex(regex) {
   switch (getMutationType()) {
-    case 'ADDITION': return ins(regex, random(0, regex.length - 1));
-    case 'DELETION': return del(regex, random(0, regex.length - 1));
-    case 'MUTATION': return mut(regex, random(0, regex.length - 1));
-    case 'DUPLICATION': return dup(regex, random(0, regex.length - 1));
+    case MUTATION_TYPES.ADDITION:    return ins(regex, random(0, regex.length - 1));
+    case MUTATION_TYPES.DELETION:    return del(regex, random(0, regex.length - 1));
+    case MUTATION_TYPES.MUTATION:    return mut(regex, random(0, regex.length - 1));
+    case MUTATION_TYPES.DUPLICATION: return dup(regex, random(0, regex.length - 1));
   }
 }
 
-//// test
+/// test
 
 // const cases = [['00', '01', '10'], ['11']];
 const cases = [
-  ['bcherny@gmail.com', 'boris@performancejs.com', 'johnq@yahoo.com', 'john.brown@gmail.com'],
-  ['foo', '123', 'bcherny.com', '@foo', '@foo.co']
+  ['bcherny@gmail.com', 'boris@performancejs.com', 'johnq@yahoo.com', 'john.brown@gmail.com', 'a.b.c@d.co'],
+  ['foo', '123', 'bcherny.com', '@foo', '@foo.co', 'abcdefg', '-1@', '1.@a']
 ]
 
 const best = Promise.all(
@@ -113,7 +110,7 @@ const best = Promise.all(
     for (let i = 0; i < GENERATIONS_PER_LINEAGE; i++) {
 
       // mutate j times per generation
-      for (let j = 0; j < MUTATIONS_PER_GENERATION; j++) {
+      for (let j = 0; j < random(MUTATIONS_PER_GENERATION_MIN, MUTATIONS_PER_GENERATION_MAX); j++) {
         current = evolveRegex(current);
       }
 
@@ -126,7 +123,11 @@ const best = Promise.all(
 )
 .then(_ => {
   const winner = _.reduce((best, current) => getFitness(current, cases) > getFitness(best, cases) ? current : best, '')
-  console.log(`BEST REGEX: "^${winner}$" (fitness=${getFitness(winner, cases)}, correct=${getPercentCorrect(winner, cases)}%)`);
+  console.log(`
+    BEST REGEX: "^${winner}$"
+      fitness: ${getFitness(winner, cases)}
+      correct: ${getPercentCorrect(winner, cases)}%
+    `);
 })
 
 
@@ -145,7 +146,7 @@ function del(regex, index) {
 
 // regex: string, index: number => string
 function dup(regex, index) {
-  return regex.slice(0, index).concat(regex[index]).concat(regex.slice(index));
+  return regex.slice(0, index).concat(regex[index] || '').concat(regex.slice(index));
 }
 
 // regex: string, index: number => string
