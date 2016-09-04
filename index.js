@@ -1,11 +1,13 @@
 const {random} = require('lodash');
 
-const COMPLEXITY_PENALTY = -2;
+const COMPLEXITY_PENALTY = -1;
 const CORRECTNESS_BONUS = 10;
-const INCORRECTNESS_PENALTY = -1;
-const INVALID_PENALTY = -100;
-
-const INITIAL_FITNESS = -Infinity
+const INCORRECTNESS_PENALTY = -3;
+const INITIAL_FITNESS = -Infinity;
+const INVALID_PENALTY = -Infinity;
+const GENERATIONS_PER_LINEAGE = 100;
+const NUMBER_OF_LINEAGES = 100;
+const SUPPORTED_REGEX_OPERANDS = ['*', '?', '+', '\\s', '\\d', '\\b'];
 
 const MUTATION_TYPES = {
   0: 'ADDITION',
@@ -14,6 +16,7 @@ const MUTATION_TYPES = {
   3: 'DUPLICATION'
 }
 
+// [A] fn: () => A => A | undefined
 const maybe = fn => {
   try {
     return fn()
@@ -22,9 +25,9 @@ const maybe = fn => {
   }
 };
 
-// regex: string => RegExp
+// regex: string => RegExp|undefined
 function toRegex(regex) {
-  return maybe(() => new RegExp(regex))
+  return maybe(() => new RegExp('^' + regex + '$'))
 }
 
 // regex: string, cases: string[][] => number
@@ -34,20 +37,25 @@ function getFitness(regex, cases) {
     return INITIAL_FITNESS
   }
 
-  let rgx = toRegex(regex);
-  console.log('rgx', rgx)
+  const rgx = toRegex(regex);
 
-  return (
-    cases[0].reduce((score, _) => score + (rgx.test(_) ? CORRECTNESS_BONUS : INCORRECTNESS_PENALTY), 0)
-    + cases[1].reduce((score, _) => score + (rgx.test(_) ? INCORRECTNESS_PENALTY : CORRECTNESS_BONUS), 0)
-    + COMPLEXITY_PENALTY * getComplexity(regex)
-  );
+  switch (rgx) {
+    case undefined:
+      return INVALID_PENALTY;
+    default:
+      const pos = cases[0].reduce((score, _) => score + (rgx.test(_) ? CORRECTNESS_BONUS : INCORRECTNESS_PENALTY), 0);
+      const neg = cases[1].reduce((score, _) => score + (rgx.test(_) ? INCORRECTNESS_PENALTY : CORRECTNESS_BONUS), 0);
+      return pos + neg + (COMPLEXITY_PENALTY * getComplexity(regex));
+  }
 }
 
 // regex: string, cases: string[][] => number
 function getPercentCorrect(regex, cases) {
-  return cases[0].reduce((score, _) => score + (getFitness(regex, cases) > 0 ? 1 : 0))
-    + cases[1].reduce((score, _) => score + (getFitness(regex, cases) <= 0 ? 1 : 0));
+  const posCorrect = cases[0].reduce((score, _) => score + (getFitness(regex, cases) > 0 ? 1 : 0), 0);
+  const negCorrect = cases[1].reduce((score, _) => score + (getFitness(regex, cases) > 0 ? 1 : 0), 0);
+  const correct = posCorrect + negCorrect;
+  const total = cases[0].length + cases[1].length;
+  return Math.round(100 * correct / total);
 }
 
 // regex: string => number
@@ -76,24 +84,25 @@ function evolveRegex(regex) {
 
 //// test
 
-const cases = [
-  [['00', '01', '10'], ['11']],
-  [['00', '01', '11'], ['10']]
-];
+const cases = [['00', '01', '10'], ['11']];
 
-let regex = '';
-for (let n = 0; n < 10; n++) {
-  let regex2 = regex;
-  for (let n = 0; n < 10; n++) {
-    regex2 = evolveRegex(regex2);
-  }
-  console.log('FITNESS', regex, '(' + getFitness(regex, cases) + ')', regex2, '(' + getFitness(regex2, cases) + ')')
-  if (getFitness(regex2, cases) > getFitness(regex, cases)) {
-    regex = regex2
-  }
-}
+const best = Array.apply(null, { length: NUMBER_OF_LINEAGES })
+  .map(() => {
+    let best = '';
+    let current = '';
+    for (let n = 0; n < GENERATIONS_PER_LINEAGE; n++) {
+      current = evolveRegex(current);
+      if (getFitness(current, cases) > getFitness(best, cases)) {
+        best = current
+      }
+    }
+    return best;
+  })
+  .reduce((best, current) => getFitness(current, cases) > getFitness(best, cases) ? current : best, '');
 
-console.log(`RESULT: ${regex} (fitness=${getFitness(regex, cases)}, %correct=${getPercentCorrect(regex, cases)})`);
+
+
+console.log(`BEST REGEX: "^${best}$" (fitness=${getFitness(best, cases)}, correct=${getPercentCorrect(best, cases)}%)`);
 
 
 
@@ -101,7 +110,7 @@ console.log(`RESULT: ${regex} (fitness=${getFitness(regex, cases)}, %correct=${g
 
 // void => string
 function getNext() {
-  return ['*', '?', '+', '0', '1'][random(0, 4)];
+  return SUPPORTED_REGEX_OPERANDS[random(0, SUPPORTED_REGEX_OPERANDS.length - 1)];
 }
 
 // regex: string, index: number => string
