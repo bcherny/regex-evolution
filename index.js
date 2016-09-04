@@ -1,13 +1,17 @@
 const {chunk, random} = require('lodash');
 
-const COMPLEXITY_PENALTY = -3;
+module.exports.compute = compute
+module.exports.getFitness = getFitness
+module.exports.getPercentCorrect = getPercentCorrect
+
+const COMPLEXITY_PENALTY = -1;
 const CORRECTNESS_BONUS = 10;
 const INCORRECTNESS_PENALTY = -1;
 const INITIAL_FITNESS = -Infinity;
 const INVALID_PENALTY = -Infinity;
 const GENERATIONS_PER_LINEAGE = 500;
-const MUTATIONS_PER_GENERATION_MIN = 10;
-const MUTATIONS_PER_GENERATION_MAX = 50;
+const MUTATIONS_PER_GENERATION_MIN = 1;
+const MUTATIONS_PER_GENERATION_MAX = 10;
 const NUMBER_OF_LINEAGES = 500;
 const SUPPORTED_REGEX_OPERANDS = ['*', '?', '+', '\\s', '\\d', '\\b', '\\w', '@', '\\.'];
 
@@ -79,7 +83,7 @@ function getComplexity(regex) {
 // void => string
 function getMutationType() {
   let roll = random(0, 100)
-  if (roll < 10) return MUTATION_TYPES.ADDITION;
+  if (roll < 20) return MUTATION_TYPES.ADDITION;
   if (roll < 70) return MUTATION_TYPES.DELETION;
   if (roll < 90) return MUTATION_TYPES.MUTATION;
   return MUTATION_TYPES.DUPLICATION;
@@ -95,44 +99,28 @@ function evolveRegex(regex) {
   }
 }
 
-/// test
+// cases: string[][] => Promise[string]
+function compute(cases) {
+  return Promise.all(
+    array(NUMBER_OF_LINEAGES).map(_ => async(() => {
+      let best = '';
+      let current = '';
+      for (let i = 0; i < GENERATIONS_PER_LINEAGE; i++) {
 
-// const cases = [['00', '01', '10'], ['11']];
-const cases = [
-  ['bcherny@gmail.com', 'boris@performancejs.com', 'johnq@yahoo.com', 'john.brown@gmail.com', 'a.b.c@d.co'],
-  ['foo', '123', 'bcherny.com', '@foo', '@foo.co', 'abcdefg', '-1@', '1.@a']
-]
+        // mutate j times per generation
+        for (let j = 0; j < random(MUTATIONS_PER_GENERATION_MIN, MUTATIONS_PER_GENERATION_MAX); j++) {
+          current = evolveRegex(current);
+        }
 
-const best = Promise.all(
-  array(NUMBER_OF_LINEAGES).map(_ => async(() => {
-    let best = '';
-    let current = '';
-    for (let i = 0; i < GENERATIONS_PER_LINEAGE; i++) {
-
-      // mutate j times per generation
-      for (let j = 0; j < random(MUTATIONS_PER_GENERATION_MIN, MUTATIONS_PER_GENERATION_MAX); j++) {
-        current = evolveRegex(current);
+        if (getFitness(current, cases) > getFitness(best, cases)) {
+          best = current
+        }
       }
-
-      if (getFitness(current, cases) > getFitness(best, cases)) {
-        best = current
-      }
-    }
-    return best;
-  }))
-)
-.then(_ => {
-  const winner = _.reduce((best, current) => getFitness(current, cases) > getFitness(best, cases) ? current : best, '')
-  console.log(`
-    BEST REGEX: "^${winner}$"
-      fitness: ${getFitness(winner, cases)}
-      correct: ${getPercentCorrect(winner, cases)}%
-    `);
-})
-
-
-
-//////////////
+      return best;
+    }))
+  )
+    .then(_ => _.reduce((best, current) => getFitness(current, cases) > getFitness(best, cases) ? current : best, ''))
+}
 
 // void => string
 function getNext() {
