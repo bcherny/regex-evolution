@@ -5,9 +5,9 @@ const CORRECTNESS_BONUS = 10;
 const INCORRECTNESS_PENALTY = -1;
 const INITIAL_FITNESS = -Infinity;
 const INVALID_PENALTY = -Infinity;
-const GENERATIONS_PER_LINEAGE = 1000;
-const MUTATIONS_PER_GENERATION = 10;
-const NUMBER_OF_LINEAGES = 1000;
+const GENERATIONS_PER_LINEAGE = 100;
+const MUTATIONS_PER_GENERATION = 100;
+const NUMBER_OF_LINEAGES = 100;
 const SUPPORTED_REGEX_OPERANDS = ['*', '?', '+', '\\s', '\\d', '\\b', '\\w', '@', '\\.'];
 
 const MUTATION_TYPES = {
