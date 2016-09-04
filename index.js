@@ -1,4 +1,4 @@
-const {random} = require('lodash');
+const {chunk, random} = require('lodash');
 
 const COMPLEXITY_PENALTY = -1;
 const CORRECTNESS_BONUS = 10;
@@ -6,6 +6,7 @@ const INCORRECTNESS_PENALTY = -1;
 const INITIAL_FITNESS = -Infinity;
 const INVALID_PENALTY = -Infinity;
 const GENERATIONS_PER_LINEAGE = 1000;
+const MUTATIONS_PER_GENERATION = 10;
 const NUMBER_OF_LINEAGES = 1000;
 const SUPPORTED_REGEX_OPERANDS = ['*', '?', '+', '\\s', '\\d', '\\b', '\\w', '@', '\\.'];
 
@@ -24,6 +25,9 @@ const maybe = fn => {
     return undefined
   }
 };
+
+const array = length => Array.apply(null, { length })
+const async = fn => new Promise(resolve => setTimeout(() => resolve(fn()), 0))
 
 // regex: string => RegExp|undefined
 function toRegex(regex) {
@@ -78,8 +82,8 @@ function getComplexity(regex) {
 // void => string
 function getMutationType() {
   let roll = random(0, 100)
-  if (roll < 10) return MUTATION_TYPES[0];
-  if (roll < 20) return MUTATION_TYPES[1];
+  if (roll < 30) return MUTATION_TYPES[0];
+  if (roll < 40) return MUTATION_TYPES[1];
   if (roll < 90) return MUTATION_TYPES[2];
   return MUTATION_TYPES[3];
 }
@@ -102,23 +106,28 @@ const cases = [
   ['foo', '123', 'bcherny.com', '@foo', '@foo.co']
 ]
 
-const best = Array.apply(null, { length: NUMBER_OF_LINEAGES })
-  .map(() => {
+const best = Promise.all(
+  array(NUMBER_OF_LINEAGES).map(_ => async(() => {
     let best = '';
     let current = '';
-    for (let n = 0; n < GENERATIONS_PER_LINEAGE; n++) {
-      current = evolveRegex(current);
+    for (let i = 0; i < GENERATIONS_PER_LINEAGE; i++) {
+
+      // mutate j times per generation
+      for (let j = 0; j < MUTATIONS_PER_GENERATION; j++) {
+        current = evolveRegex(current);
+      }
+
       if (getFitness(current, cases) > getFitness(best, cases)) {
         best = current
       }
     }
     return best;
-  })
-  .reduce((best, current) => getFitness(current, cases) > getFitness(best, cases) ? current : best, '');
-
-
-
-console.log(`BEST REGEX: "^${best}$" (fitness=${getFitness(best, cases)}, correct=${getPercentCorrect(best, cases)}%)`);
+  }))
+)
+.then(_ => {
+  const winner = _.reduce((best, current) => getFitness(current, cases) > getFitness(best, cases) ? current : best, '')
+  console.log(`BEST REGEX: "^${winner}$" (fitness=${getFitness(winner, cases)}, correct=${getPercentCorrect(winner, cases)}%)`);
+})
 
 
 
