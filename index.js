@@ -4,16 +4,16 @@ module.exports.compute = compute
 module.exports.getFitness = getFitness
 module.exports.getPercentCorrect = getPercentCorrect
 
-const COMPLEXITY_PENALTY = -1
+const COMPLEXITY_PENALTY = 1
 const CORRECTNESS_BONUS = 10
 const INCORRECTNESS_PENALTY = -1
 const INITIAL_FITNESS = -Infinity
 const INVALID_PENALTY = -Infinity
-const GENERATIONS_PER_LINEAGE = 500
-const MUTATIONS_PER_GENERATION_MIN = 1
+const GENERATIONS_PER_LINEAGE = 500000
+const MUTATIONS_PER_GENERATION_MIN = 10
 const MUTATIONS_PER_GENERATION_MAX = 10
-const NUMBER_OF_LINEAGES = 500
-const SUPPORTED_REGEX_OPERANDS = ['*', '?', '+', '\\s', '\\d', '\\b', '\\w', '@', '\\.']
+const NUMBER_OF_LINEAGES = 1
+const SUPPORTED_REGEX_OPERANDS = ['*', '.', '?', '+', '%', '$', '#', '!', '&', '\\s', '\\d', '\\b', '\\w', '@', '\\.']
 
 const MUTATION_TYPES = {
   ADDITION: 'ADDITION',
@@ -42,12 +42,15 @@ function getFitness(regex, cases) {
 
   const rgx = toRegex(regex)
 
+  // oneCase: string => number
+  const getOne = oneCase => oneCase.split('').reduce((acc, _) => acc + (rgx.test(_) ? 1 : 0), 0)
+
   switch (rgx) {
     case undefined:
       return INVALID_PENALTY
     default:
-      const pos = cases[0].reduce((score, _) => score + (rgx.test(_) ? CORRECTNESS_BONUS : INCORRECTNESS_PENALTY), 0)
-      const neg = cases[1].reduce((score, _) => score + (rgx.test(_) ? INCORRECTNESS_PENALTY : CORRECTNESS_BONUS), 0)
+      const pos = cases[0].reduce((score, _) => score + (getOne(_) * CORRECTNESS_BONUS), 0)
+      const neg = cases[1].reduce((score, _) => score + (getOne(_) * INCORRECTNESS_PENALTY), 0)
       return pos > 0
         ? pos + neg + (COMPLEXITY_PENALTY * getComplexity(regex))
         : 0
@@ -85,7 +88,7 @@ function getMutationType() {
   let roll = random(0, 100)
   if (roll < 20) return MUTATION_TYPES.ADDITION
   if (roll < 70) return MUTATION_TYPES.DELETION
-  if (roll < 90) return MUTATION_TYPES.MUTATION
+  if (roll < 95) return MUTATION_TYPES.MUTATION
   return MUTATION_TYPES.DUPLICATION
 }
 
@@ -101,6 +104,7 @@ function evolveRegex(regex) {
 
 // cases: string[][] => Promise[string]
 function compute(cases) {
+  console.log(`generating up to ${NUMBER_OF_LINEAGES*GENERATIONS_PER_LINEAGE*MUTATIONS_PER_GENERATION_MAX} mutations...`)
   return Promise.all(
     array(NUMBER_OF_LINEAGES).map(_ => async(() => {
       let best = ''
@@ -112,7 +116,10 @@ function compute(cases) {
           current = evolveRegex(current)
         }
 
-        if (getFitness(current, cases) > getFitness(best, cases)) {
+        const f = getFitness(current, cases)
+        console.log(array(f/10 | 1).map(() => '=').join(''), current)
+
+        if (f > getFitness(best, cases)) {
           best = current
         }
       }
@@ -122,27 +129,29 @@ function compute(cases) {
     .then(_ => _.reduce((best, current) => getFitness(current, cases) > getFitness(best, cases) ? current : best, ''))
 }
 
-// void => string
-function getNext() {
-  return SUPPORTED_REGEX_OPERANDS[random(0, SUPPORTED_REGEX_OPERANDS.length - 1)]
+// current: string => string
+function getNext(current) {
+  const next = SUPPORTED_REGEX_OPERANDS[random(0, SUPPORTED_REGEX_OPERANDS.length - 1)]
+  if (next === current) return getNext(current) // don't generate consecutive duplicates
+  return next
 }
 
-// regex: string, index: number => string
-function del(regex, index) {
-  return regex.slice(0, index).concat(regex.slice(index + 1))
+// string: string, index: number => string
+function del(string, index) {
+  return string.slice(0, index).concat(string.slice(index + 1))
 }
 
-// regex: string, index: number => string
-function dup(regex, index) {
-  return regex.slice(0, index).concat(regex[index] || '').concat(regex.slice(index))
+// string: string, index: number => string
+function dup(string, index) {
+  return string.slice(0, index).concat(string[index] || '').concat(string.slice(index))
 }
 
-// regex: string, index: number => string
-function ins(regex, index) {
-  return regex.slice(0, index).concat(getNext()).concat(regex.slice(index))
+// string: string, index: number => string
+function ins(string, index) {
+  return string.slice(0, index).concat(getNext(string[index])).concat(string.slice(index))
 }
 
-// regex: string, index: number => string
-function mut(regex, index) {
-  return regex.slice(0, index).concat(getNext()).concat(regex.slice(index + 1))
+// string: string, index: number => string
+function mut(string, index) {
+  return string.slice(0, index).concat(getNext(string[index])).concat(string.slice(index + 1))
 }
