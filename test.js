@@ -8,7 +8,7 @@ const cases = [
 
 compute(cases).then(winner =>
   console.log(`
-    BEST REGEX: "^${winner}$"
+    BEST REGEX: "^${winner.join('')}$"
       fitness: ${getFitness(winner, cases)}
       correct: ${getPercentCorrect(winner, cases)}%
   `)

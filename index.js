@@ -4,16 +4,16 @@ module.exports.compute = compute
 module.exports.getFitness = getFitness
 module.exports.getPercentCorrect = getPercentCorrect
 
-const COMPLEXITY_PENALTY = 1
+const COMPLEXITY_PENALTY = -1
 const CORRECTNESS_BONUS = 10
 const INCORRECTNESS_PENALTY = -1
 const INITIAL_FITNESS = -Infinity
 const INVALID_PENALTY = -Infinity
 const GENERATIONS_PER_LINEAGE = 500000
-const MUTATIONS_PER_GENERATION_MIN = 10
+const MUTATIONS_PER_GENERATION_MIN = 1
 const MUTATIONS_PER_GENERATION_MAX = 10
 const NUMBER_OF_LINEAGES = 1
-const SUPPORTED_REGEX_OPERANDS = ['*', '.', '?', '+', '%', '$', '#', '!', '&', '\\s', '\\d', '\\b', '\\w', '@', '\\.']
+const SUPPORTED_REGEX_OPERANDS = ['*', '.', '?', '\\b', '\\w', '@', '\\.'] // '+', '%', '$', '#', '!', '&', '\\s', '\\d'
 
 const MUTATION_TYPES = {
   ADDITION: 'ADDITION',
@@ -45,15 +45,16 @@ function getFitness(regex, cases) {
   // oneCase: string => number
   const getOne = oneCase => oneCase.split('').reduce((acc, _) => acc + (rgx.test(_) ? 1 : 0), 0)
 
+  // cases: string[] => number
+  const get = cases => cases.reduce((score, _) => score + getOne(_), 0)
+
   switch (rgx) {
     case undefined:
       return INVALID_PENALTY
     default:
-      const pos = cases[0].reduce((score, _) => score + (getOne(_) * CORRECTNESS_BONUS), 0)
-      const neg = cases[1].reduce((score, _) => score + (getOne(_) * INCORRECTNESS_PENALTY), 0)
-      return pos > 0
-        ? pos + neg + (COMPLEXITY_PENALTY * getComplexity(regex))
-        : 0
+      const pos = CORRECTNESS_BONUS * get(cases[0])
+      const neg = INCORRECTNESS_PENALTY * get(cases[1])
+      return pos + neg + (COMPLEXITY_PENALTY * getComplexity(regex))
   }
 }
 
@@ -86,10 +87,10 @@ function getComplexity(regex) {
 // void => string
 function getMutationType() {
   let roll = random(0, 100)
-  if (roll < 20) return MUTATION_TYPES.ADDITION
-  if (roll < 70) return MUTATION_TYPES.DELETION
-  if (roll < 95) return MUTATION_TYPES.MUTATION
-  return MUTATION_TYPES.DUPLICATION
+  if (roll < 10) return MUTATION_TYPES.ADDITION
+  if (roll < 30) return MUTATION_TYPES.DELETION
+  return MUTATION_TYPES.MUTATION
+  // return MUTATION_TYPES.DUPLICATION
 }
 
 // seed: string => string
@@ -102,31 +103,41 @@ function evolveRegex(regex) {
   }
 }
 
-// cases: string[][] => Promise[string]
+// cases: string[][] => Promise[string[]]
 function compute(cases) {
-  console.log(`generating up to ${NUMBER_OF_LINEAGES*GENERATIONS_PER_LINEAGE*MUTATIONS_PER_GENERATION_MAX} mutations...`)
+  const total = NUMBER_OF_LINEAGES * GENERATIONS_PER_LINEAGE * MUTATIONS_PER_GENERATION_MAX
+  let counter = 0
+  console.log(`generating up to ${total} mutations...`)
   return Promise.all(
     array(NUMBER_OF_LINEAGES).map(_ => async(() => {
       let best = []
       let current = []
-      for (let i = 0; i < GENERATIONS_PER_LINEAGE; i++) {
+      for (let i = GENERATIONS_PER_LINEAGE; i--;) {
+
+        // log new best
+        let symbol = '.'
 
         // mutate j times per generation
-        for (let j = 0; j < random(MUTATIONS_PER_GENERATION_MIN, MUTATIONS_PER_GENERATION_MAX); j++) {
+        for (let j = random(MUTATIONS_PER_GENERATION_MIN, MUTATIONS_PER_GENERATION_MAX); j--;) {
           current = evolveRegex(current)
         }
 
         const f = getFitness(current, cases)
-        console.log(array(f/10 | 1).map(() => '=').join(''), current.join(''))
+        // console.log(array(f/10 | 1).map(() => '=').join(''), current.join(''))
 
         if (f > getFitness(best, cases)) {
           best = current
+          symbol = 'x'
         }
+
+        // log progress
+        counter++
+        if (((100000*counter/total) | 0) % 100 === 0) process.stdout.write(symbol)
       }
       return best
     }))
   )
-    .then(_ => _.reduce((best, current) => getFitness(current, cases) > getFitness(best, cases) ? current : best, ''))
+    .then(_ => _.reduce((best, current) => getFitness(current, cases) > getFitness(best, cases) ? current : best, []))
 }
 
 // current: string => string
