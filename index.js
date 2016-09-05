@@ -28,15 +28,15 @@ const async = fn => new Promise(resolve => setTimeout(() => resolve(fn()), 0))
 // [A] fn: () => A => A | undefined
 const maybe = fn => { try { return fn() } catch (e) { return undefined } }
 
-// regex: string => RegExp|undefined
+// regex: string[] => RegExp|undefined
 function toRegex(regex) {
-  return maybe(() => new RegExp('^' + regex + '$'))
+  return maybe(() => new RegExp('^' + regex.join('') + '$'))
 }
 
-// regex: string, cases: string[][] => number
+// regex: string[], cases: string[][] => number
 function getFitness(regex, cases) {
 
-  if (regex === '') {
+  if (regex[0] === undefined) {
     return INITIAL_FITNESS
   }
 
@@ -60,7 +60,7 @@ function getFitness(regex, cases) {
 // regex: string, cases: string[][] => number
 function getPercentCorrect(regex, cases) {
 
-  if (regex === '') {
+  if (regex[0] === undefined) {
     return 0
   }
 
@@ -107,8 +107,8 @@ function compute(cases) {
   console.log(`generating up to ${NUMBER_OF_LINEAGES*GENERATIONS_PER_LINEAGE*MUTATIONS_PER_GENERATION_MAX} mutations...`)
   return Promise.all(
     array(NUMBER_OF_LINEAGES).map(_ => async(() => {
-      let best = ''
-      let current = ''
+      let best = []
+      let current = []
       for (let i = 0; i < GENERATIONS_PER_LINEAGE; i++) {
 
         // mutate j times per generation
@@ -117,7 +117,7 @@ function compute(cases) {
         }
 
         const f = getFitness(current, cases)
-        console.log(array(f/10 | 1).map(() => '=').join(''), current)
+        console.log(array(f/10 | 1).map(() => '=').join(''), current.join(''))
 
         if (f > getFitness(best, cases)) {
           best = current
@@ -136,22 +136,22 @@ function getNext(current) {
   return next
 }
 
-// string: string, index: number => string
-function del(string, index) {
-  return string.slice(0, index).concat(string.slice(index + 1))
+// value: array|string, index: number => array|string
+function del(value, index) {
+  return value.slice(0, index).concat(value.slice(index + 1))
 }
 
-// string: string, index: number => string
-function dup(string, index) {
-  return string.slice(0, index).concat(string[index] || '').concat(string.slice(index))
+// value: array|string, index: number => array|string
+function dup(value, index) {
+  return value.slice(0, index).concat(value[index] || '').concat(value.slice(index))
 }
 
-// string: string, index: number => string
-function ins(string, index) {
-  return string.slice(0, index).concat(getNext(string[index])).concat(string.slice(index))
+// value: array|string, index: number => array|string
+function ins(value, index) {
+  return value.slice(0, index).concat(getNext(value[index])).concat(value.slice(index))
 }
 
-// string: string, index: number => string
-function mut(string, index) {
-  return string.slice(0, index).concat(getNext(string[index])).concat(string.slice(index + 1))
+// value: array|string, index: number => array|string
+function mut(value, index) {
+  return value.slice(0, index).concat(getNext(value[index])).concat(value.slice(index + 1))
 }
