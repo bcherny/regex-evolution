@@ -1,9 +1,11 @@
-const {compute, getFitness, getPercentCorrect} = require('./')
+const {compute} = require('../dist/index')
 
 // const cases = [
 //   ['bcherny@gmail.com', 'boris@performancejs.com', 'johnq@yahoo.com', 'john.brown@gmail.com', 'a.b.c@d.co'],
 //   ['foo', '123', 'bcherny.com', '@foo', '@foo.co', 'abcdefg', '-1@', '1.@a']
 // ]
+
+// const SUPPORTED_REGEX_OPERANDS = ['1', '0'] //['*', '.', '?', '\\b', '\\w', '@', '\\.'] // '+', '%', '$', '#', '!', '&', '\\s', '\\d'
 
 const test = {
   alphabet: ['0', '1'],

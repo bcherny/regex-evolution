@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "noImplicitAny": true,
+    "preserveConstEnums": true,
+    "outDir": "./dist",
+    "declaration": false,
+    "lib": ["es6"],
+    "sourceMap": true,
+    "target": "es6",
+    "strictNullChecks": true
+  },
+  "files": [
+    "./node_modules/@types/lodash/index.d.ts",
+    "./node_modules/@types/node/index.d.ts",
+    "./src/index.ts"
+  ]
+}
