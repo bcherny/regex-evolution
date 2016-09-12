@@ -6,14 +6,14 @@ module.exports.getPercentCorrect = getPercentCorrect
 
 const COMPLEXITY_PENALTY = -1
 const CORRECTNESS_BONUS = 10
-const INCORRECTNESS_PENALTY = -1
+const INCORRECTNESS_PENALTY = -5
 const INITIAL_FITNESS = -Infinity
 const INVALID_PENALTY = -Infinity
-const GENERATIONS_PER_LINEAGE = 500000
+const GENERATIONS_PER_LINEAGE = 100
 const MUTATIONS_PER_GENERATION_MIN = 1
-const MUTATIONS_PER_GENERATION_MAX = 10
-const NUMBER_OF_LINEAGES = 1
-const SUPPORTED_REGEX_OPERANDS = ['*', '.', '?', '\\b', '\\w', '@', '\\.'] // '+', '%', '$', '#', '!', '&', '\\s', '\\d'
+const MUTATIONS_PER_GENERATION_MAX = 1
+const NUMBER_OF_LINEAGES = 100
+const SUPPORTED_REGEX_OPERANDS = ['1', '0'] //['*', '.', '?', '\\b', '\\w', '@', '\\.'] // '+', '%', '$', '#', '!', '&', '\\s', '\\d'
 
 const MUTATION_TYPES = {
   ADDITION: 'ADDITION',
@@ -30,7 +30,7 @@ const maybe = fn => { try { return fn() } catch (e) { return undefined } }
 
 // regex: string[] => RegExp|undefined
 function toRegex(regex) {
-  return maybe(() => new RegExp('^' + regex.join('') + '$'))
+  return maybe(() => new RegExp(regex.join('')))
 }
 
 // regex: string[], cases: string[][] => number
@@ -43,7 +43,12 @@ function getFitness(regex, cases) {
   const rgx = toRegex(regex)
 
   // oneCase: string => number
-  const getOne = oneCase => oneCase.split('').reduce((acc, _) => acc + (rgx.test(_) ? 1 : 0), 0)
+  const getOne = oneCase => {
+    const match = oneCase.match(rgx)
+    if (match === null) return 0
+    if (match[0].length === oneCase.length) return Infinity // perfect match
+    return match[0].length
+  }
 
   // cases: string[] => number
   const get = cases => cases.reduce((score, _) => score + getOne(_), 0)
@@ -71,8 +76,8 @@ function getPercentCorrect(regex, cases) {
     case undefined:
       return 0
     default:
-      const posCorrect = cases[0].reduce((score, _) => score + (rgx.test(_) ? 1 : 0), 0)
-      const negCorrect = cases[1].reduce((score, _) => score + (rgx.test(_) ? 0 : 1), 0)
+      const posCorrect = cases[0].reduce((score, _) => score + (_.match(rgx) ? 1 : 0), 0)
+      const negCorrect = cases[1].reduce((score, _) => score + (_.match(rgx) ? 0 : 1), 0)
       const correct = posCorrect + negCorrect
       const total = cases[0].length + cases[1].length
       return Math.round(100 * correct / total)
@@ -87,7 +92,7 @@ function getComplexity(regex) {
 // void => string
 function getMutationType() {
   let roll = random(0, 100)
-  if (roll < 10) return MUTATION_TYPES.ADDITION
+  if (roll < 13) return MUTATION_TYPES.ADDITION
   if (roll < 30) return MUTATION_TYPES.DELETION
   return MUTATION_TYPES.MUTATION
   // return MUTATION_TYPES.DUPLICATION
@@ -111,22 +116,29 @@ function compute(cases) {
   return Promise.all(
     array(NUMBER_OF_LINEAGES).map(_ => async(() => {
       let best = []
-      let current = []
+      let bestFitness = -Infinity
       for (let i = GENERATIONS_PER_LINEAGE; i--;) {
 
         // log new best
         let symbol = '.'
 
         // mutate j times per generation
+        let current = []
         for (let j = random(MUTATIONS_PER_GENERATION_MIN, MUTATIONS_PER_GENERATION_MAX); j--;) {
-          current = evolveRegex(current)
+          current = evolveRegex(best)
         }
 
-        const f = getFitness(current, cases)
+        const fitness = getFitness(current, cases)
         // console.log(array(f/10 | 1).map(() => '=').join(''), current.join(''))
 
-        if (f > getFitness(best, cases)) {
+        // if we have a perfect match, short circuit
+        if (fitness === Infinity) {
+          return current
+        }
+
+        if (fitness > bestFitness) {
           best = current
+          bestFitness = fitness
           symbol = 'x'
         }
 
