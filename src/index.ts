@@ -3,10 +3,10 @@ import {array, async, maybe} from './utils'
 
 const COMPLEXITY_PENALTY = -1
 const CORRECTNESS_BONUS = 10
-const INCORRECTNESS_PENALTY = -5
+const INCORRECTNESS_PENALTY = -1
 const INITIAL_FITNESS = -Infinity
 const INVALID_PENALTY = -Infinity
-const GENERATIONS_PER_LINEAGE = 100
+const GENERATIONS_PER_LINEAGE = 500
 const MUTATIONS_PER_GENERATION_MIN = 1
 const MUTATIONS_PER_GENERATION_MAX = 1
 const NUMBER_OF_LINEAGES = 100
@@ -68,10 +68,11 @@ function getComplexity(regex: string[]): number {
 }
 
 function getMutationType(): MUTATION_TYPE {
-  let roll = random(0, 100)
-  if (roll < 13) return MUTATION_TYPE.ADDITION
-  if (roll < 30) return MUTATION_TYPE.DELETION
-  return MUTATION_TYPE.MUTATION
+  return MUTATION_TYPE.ADDITION
+  // let roll = random(0, 100)
+  // if (roll < 13) return MUTATION_TYPE.ADDITION
+  // if (roll < 30) return MUTATION_TYPE.DELETION
+  // return MUTATION_TYPE.MUTATION
   // return MUTATION_TYPE.DUPLICATION
 }
 
@@ -90,7 +91,7 @@ interface Result { regex: string, fitnessScore: number, percentCorrect: number }
 export function compute({alphabet, good, bad}: Input): Promise<Result> {
   const total = NUMBER_OF_LINEAGES * GENERATIONS_PER_LINEAGE * MUTATIONS_PER_GENERATION_MAX
   let counter = 0
-  console.log(`generating up to ${total} mutations...`)
+  // console.log(`generating up to ${total} mutations...`)
   return Promise.all(
     array(NUMBER_OF_LINEAGES).map(_ => async(() => {
       let best: string[] = []
@@ -107,7 +108,7 @@ export function compute({alphabet, good, bad}: Input): Promise<Result> {
         }
 
         const fitness = getFitness(current, alphabet, good, bad)
-        // console.log(array(f/10 | 1).map(() => '=').join(''), current.join(''))
+        // console.log(array(fitness/10 | 1).map(() => '=').join(''), current.join(''))
 
         // if we have a perfect match, short circuit
         if (fitness === Infinity) {
@@ -121,8 +122,8 @@ export function compute({alphabet, good, bad}: Input): Promise<Result> {
         }
 
         // log progress
-        counter++
-        if (((100000*counter/total) | 0) % 100 === 0) process.stdout.write(symbol)
+        // counter++
+        // if (((100000*counter/total) | 0) % 100 === 0) process.stdout.write(symbol)
       }
       return best
     }))
@@ -140,9 +141,7 @@ export function compute({alphabet, good, bad}: Input): Promise<Result> {
 }
 
 function getNext(current: string, alphabet: string[]): string {
-  const next = alphabet[random(0, alphabet.length - 1)]
-  if (next === current) return getNext(current, alphabet) // don't generate consecutive duplicates
-  return next
+  return alphabet[random(0, alphabet.length - 1)]
 }
 
 function del(value: string[], index: number): string[] {
