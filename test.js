@@ -1,20 +1,20 @@
 const {compute, getFitness, getPercentCorrect} = require('./')
 
-// const cases = [['00', '01', '10'], ['11']];
 // const cases = [
 //   ['bcherny@gmail.com', 'boris@performancejs.com', 'johnq@yahoo.com', 'john.brown@gmail.com', 'a.b.c@d.co'],
 //   ['foo', '123', 'bcherny.com', '@foo', '@foo.co', 'abcdefg', '-1@', '1.@a']
 // ]
 
-const cases = [
-  ['101010'],
-  ['111111', '000000']
-]
+const test = {
+  alphabet: ['0', '1'],
+  good: ['101010'],
+  bad: ['111111', '000000']
+}
 
-compute(cases).then(winner =>
+compute(test).then(({fitnessScore, percentCorrect, regex}) =>
   console.log(`
-    BEST REGEX: "${winner.join('')}"
-      fitness: ${getFitness(winner, cases)}
-      correct: ${getPercentCorrect(winner, cases)}%
+    BEST REGEX: "${regex}"
+      fitness: ${fitnessScore}
+      correct: ${percentCorrect}%
   `)
 )

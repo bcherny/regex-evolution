@@ -108,7 +108,7 @@ function evolveRegex(regex) {
   }
 }
 
-// cases: string[][] => Promise[string[]]
+// cases: string[][] => Promise[{regex: string, fitnessScore: number, percentCorrect: number}]
 function compute(cases) {
   const total = NUMBER_OF_LINEAGES * GENERATIONS_PER_LINEAGE * MUTATIONS_PER_GENERATION_MAX
   let counter = 0
@@ -149,7 +149,16 @@ function compute(cases) {
       return best
     }))
   )
-    .then(_ => _.reduce((best, current) => getFitness(current, cases) > getFitness(best, cases) ? current : best, []))
+    .then(_ => {
+      const winner = _.reduce((best, current) =>
+        getFitness(current, cases) > getFitness(best, cases) ? current : best, []
+      )
+      return {
+        regex: winner.join(''),
+        fitnessScore: getFitness(winner, cases),
+        percentCorrect: getPercentCorrect(winner, cases)
+      }
+    })
 }
 
 // current: string => string
