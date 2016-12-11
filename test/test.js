@@ -30,10 +30,16 @@ const tests = [
     bad: ['123.abc']
   },
   {
-    alphabet: ['\w', '\d', '+', '*', '\\.', '@'],
+    alphabet: ['0', '1', '?', '(', ')'],
+    good: ['10', '1010', '101010'],
+    bad: ['111111', '000000']
+  },
+  {
+    alphabet: ['\w', '+', '\\.', '@'],
     good: ['bcherny@gmail.com', 'boris@performancejs.com', 'johnq@yahoo.com', 'john.brown@gmail.com', 'a.b.c@d.co'],
     bad: []
-  }
+  },
+  // ["(800) 878-2222"  "(412) 532-5111" "(111) 111-1111"]
 ]
 
 Promise.all(tests.map(async one =>

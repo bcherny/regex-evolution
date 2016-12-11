@@ -1,6 +1,7 @@
 import { chunk, random } from 'lodash'
 import {array, async, maybe} from './utils'
 
+// hyperparameters
 const COMPLEXITY_PENALTY = -1
 const CORRECTNESS_BONUS = 10
 const INCORRECTNESS_PENALTY = -1
@@ -8,8 +9,8 @@ const INITIAL_FITNESS = -Infinity
 const INVALID_PENALTY = -Infinity
 const GENERATIONS_PER_LINEAGE = 500
 const MUTATIONS_PER_GENERATION_MIN = 1
-const MUTATIONS_PER_GENERATION_MAX = 1
-const NUMBER_OF_LINEAGES = 100
+const MUTATIONS_PER_GENERATION_MAX = 2
+const NUMBER_OF_LINEAGES = 1000
 
 enum MUTATION_TYPE {
   ADDITION,
@@ -36,10 +37,12 @@ function getFitness(regex: string[], alphabet: string[], good: string[], bad: st
     const match = oneCase.match(rgx)
     if (match === null) return 0
     if (match[0].length === oneCase.length) return Infinity // perfect match
+    // if (match.length > 1) return -1
     return match[0].length
   }
 
-  const get = (cases: string[]): number => cases.reduce((score, _) => score + getOne(_), 0)
+  const get = (cases: string[]): number =>
+    cases.reduce((score, _) => score + getOne(_), 0)
 
   const pos = CORRECTNESS_BONUS * get(good)
   const neg = INCORRECTNESS_PENALTY * get(bad)
