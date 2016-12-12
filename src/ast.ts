@@ -47,7 +47,7 @@ const example: Root = {
 type MUTATION_TYPE = 'ADDITION' | 'DELETION' | 'DUPLICATION' | 'MUTATION'
 
 import { random } from 'lodash'
-import { insertAt, randomMember, withoutAt } from './utils'
+import { insertAt, randomMember, swapAt, withoutAt } from './utils'
 
 const AST = {
   mutate(node: ParentAST, type: MUTATION_TYPE): AST {
@@ -61,7 +61,9 @@ const AST = {
   },
   ops: {
     createRandomNode(fromNode: ParentAST): NonRootAST {
-      const type = AST.random.type()
+      return AST.ops.createRandomNodeOfType(AST.random.type())
+    },
+    createRandomNodeOfType(type: ASTType): NonRootAST {
       return type === 'CHAR_SET'
         ? { type, children: [] }
         : { type, value: AST.random.value(type) } as LeafAST // TS :(
@@ -81,7 +83,12 @@ const AST = {
         type: parentNode.type
       } as ParentAST // TS :(
     },
-    mutateChild(parentNode: ParentAST, index: number): ParentAST {}
+    mutateChild(parentNode: ParentAST, index: number): ParentAST {
+      return {
+        children: swapAt(parentNode.children, index, AST.ops.createRandomNodeOfType(parentNode.children[index].type)),
+        type: parentNode.type
+      } as ParentAST // TS :(
+    }
   },
   random: {
     type(): ASTType { return randomMember(ASTTypes) },
@@ -106,79 +113,3 @@ const AST = {
     }
   }
 }
-
-//////// tree
-
-// import { flatten } from 'lodash'
-
-// abstract class Tree<T> {
-//   constructor(public value?: T, public children?: Tree<T>[]) { }
-//   // static toArray<T>(tree: Tree<T>): T[] {
-//   //   return [tree.value].concat(tree.children ? flatten(tree.children.map(Tree.toArray)) : [])
-//   // }
-//   abstract toString(): string
-//   static toString<T>(tree: Tree<T>) {
-//     return tree.children.map(_ => _.toString()).join('')
-//   }
-// }
-
-// class Root<T> extends Tree<T> {
-//   toString() { return Tree.toString(this) }
-// }
-
-// class CharacterSet<T> extends Tree<T> {
-//   toString() { return '[' + Tree.toString(this) + ']' }
-// }
-
-// // characters
-
-// class Character<T extends string> extends Tree<T> {
-//   constructor(public value: T) {
-//     super(value)
-//   }
-//   toString() { return this.value }
-// }
-
-// class Boundary extends Character<'\b'> {}
-// class Digit extends Character<'\d'> {}
-// class Space extends Character<'\s'> {}
-// class Word extends Character<'\w'> {}
-
-// // quantifiers
-
-// class Quantifier<T extends string> extends Character<T> {}
-
-// class OneOrMore extends Quantifier<'+'> {}
-// class ZeroOrMore extends Quantifier<'*'> { }
-
-// //
-
-// type TreeNode<T extends string> = Boundary | Character<T> | CharacterSet<T> | Digit | Space | Word | OneOrMore | ZeroOrMore
-
-// //////// ast
-
-// import { random } from 'lodash'
-
-// type ASTNode = TreeNode<string>
-
-// class AST extends Tree<ASTNode> {
-//   applyMutationToNode(node: ASTNode, mutation: MUTATION): ASTNode {
-//     switch (mutation) {
-//       case MUTATION.ADDITION: return node instanceof CharacterSet ?
-//       case MUTATION.DELETION: return node.parent.removeChild(node)
-//     }
-//   }
-//   getRandomMutation(): MUTATION {
-//     const roll = random(0, 100)
-//     if (roll < 13) return MUTATION.ADDITION
-//     if (roll < 30) return MUTATION.DELETION
-//     return MUTATION.MUTATION
-//   }
-//   getRefToRandomNode(): AST {}
-//   mutateNode() {
-//     const node = this.getRefToRandomNode()
-//     const mutation = this.getRandomMutation()
-//     this.applyMutationToNode(node, mutation)
-//   }
-//   toString() { return Tree.toString(this) }
-// }

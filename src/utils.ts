@@ -25,6 +25,14 @@ export function randomMember<A>(array: A[]): A {
   return array[random(0, array.length - 1)]
 }
 
+export function swapAt<A>(array: A[], index: number, replacement: A): A[] {
+  if (index < 0) {
+    // TODO: handle negative indices
+    throw new RangeError('index must be > -1')
+  }
+  return array.slice(0, index).concat([replacement]).concat(array.slice(index + 1))
+}
+
 export function withoutAt<A>(array: A[], ...indices: number[]): A[] {
   switch (indices.length) {
     case 0: return array
