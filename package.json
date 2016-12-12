@@ -12,13 +12,13 @@
   "author": "Boris Cherny <boris@performancejs.com> (http://performancejs.com/)",
   "license": "MIT",
   "dependencies": {
-    "@types/lodash": "^4.14.34",
+    "@types/lodash": "^4.14.43",
     "@types/node": "^6.0.38",
-    "lodash": "^4.15.0"
+    "lodash": "^4.17.0"
   },
   "devDependencies": {
-    "ava": "^0.16.0",
-    "typescript": "^2.0.0"
+    "ava": "^0.17.0",
+    "typescript": "^2.1.4"
   },
   "ava": {
     "source": [
