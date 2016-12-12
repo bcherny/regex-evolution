@@ -1,12 +1,12 @@
 - RegExp `{ type: 'ROOT', children: [] }`
-- `[]` CharacterSet `{ type: 'CHARACTER_SET', children: [...] }`
-- Character
-  - Literal `{ type: 'CHARACTER', value: '@' }`
-  - `.` Any `{ type: 'CHARACTER', value: '.' }`
-  - `\b` Boundary `{ type: 'CHARACTER', value: '\b' }`
-  - `\d` Digit `{ type: 'CHARACTER', value: '\d' }`
-  - `\s` Space `{ type: 'CHARACTER', value: '\s' }`
-  - `\w` Word `{ type: 'CHARACTER', value: '\w' }`
+- `[]` CharSet `{ type: 'CHAR_SET', children: [...] }`
+- Char
+  - Literal `{ type: 'CHAR', value: '@' }`
+  - `.` Any `{ type: 'CHAR', value: '.' }`
+  - `\b` Boundary `{ type: 'CHAR', value: '\b' }`
+  - `\d` Digit `{ type: 'CHAR', value: '\d' }`
+  - `\s` Space `{ type: 'CHAR', value: '\s' }`
+  - `\w` Word `{ type: 'CHAR', value: '\w' }`
 - Quantifier
   - `+` OneOrMore `{ type: 'QUANTIFIER', value: '+' }`
   - `*` ZeroOrMore `{ type: 'QUANTIFIER', value: '*' }`
